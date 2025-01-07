@@ -14,11 +14,12 @@ import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"; // Toggle
 import Accounts from "./Accounts"; // Import the Accounts component
 import { useState } from "react";
 import AddAccounting from "./AddAccounting";
-
+import { useNavigate } from "react-router-dom";
+import LogoutIcon from "@mui/icons-material/Logout";
 const AccountLedger = () => {
   const [selectedIndex, setSelectedIndex] = useState(0); // Track active index
   const [sidebarExpanded, setSidebarExpanded] = useState(true); // Toggle sidebar text
-
+  const navigate = useNavigate();
   const handleListItemClick = (index) => {
     setSelectedIndex(index); // Update the active index
   };
@@ -26,7 +27,14 @@ const AccountLedger = () => {
   const toggleSidebar = () => {
     setSidebarExpanded(!sidebarExpanded); // Toggle sidebar text visibility
   };
+  const handleLogout = () => {
+    // Remove the token from local storage
+    localStorage.removeItem("token");
 
+    // Navigate to the home route
+
+    navigate("/");
+  };
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
       {/* Sidebar */}
@@ -118,6 +126,18 @@ const AccountLedger = () => {
               <AssignmentTurnedInIcon />
             </ListItemIcon>
             {sidebarExpanded && <ListItemText primary="Reports" />}
+          </ListItem>
+          <ListItem
+            button
+            onClick={handleLogout}
+            sx={{
+              cursor: "pointer",
+            }}
+          >
+            <ListItemIcon>
+              <LogoutIcon />
+            </ListItemIcon>
+            {sidebarExpanded && <ListItemText primary="Logout" />}
           </ListItem>
         </List>
       </Box>

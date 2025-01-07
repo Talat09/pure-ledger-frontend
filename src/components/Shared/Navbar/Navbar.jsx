@@ -1,7 +1,8 @@
-import { Box, Button } from "@mui/material";
+import { Avatar, Box, Button, Typography } from "@mui/material";
 import logo from "../../../assets/logo.png";
 import { Link } from "react-router-dom";
 const Navbar = () => {
+  const token = localStorage.getItem("token");
   return (
     <Box sx={{ backgroundColor: "#2397c8" }}>
       <Box sx={{ maxWidth: "1440px", mx: "auto" }}>
@@ -17,19 +18,33 @@ const Navbar = () => {
             {" "}
             <img src={logo} alt="Pure Ledger Logo" />
           </Link>
-          <Link to="/">
-            <Button
-              variant="outlined"
-              sx={{
-                color: "#ffffff",
-                borderColor: "#ffffff",
-                textTransform: "capitalize",
-                fontWeight: "bold",
-              }}
-            >
-              Login
-            </Button>
-          </Link>
+          {token ? (
+            <Box sx={{ display: "flex", alignItems: "center",gap:2 }}>
+              <Box>
+                <Typography sx={{ color: "white", fontWeight: 600 }}>
+                  Demo Name
+                </Typography>
+                <Typography sx={{ color: "white", fontWeight: 500 }}>
+                  Demo Position
+                </Typography>
+              </Box>
+              <Avatar alt="Remy Sharp" src="/static/images/avatar/1.jpg" />
+            </Box>
+          ) : (
+            <Link to="/">
+              <Button
+                variant="outlined"
+                sx={{
+                  color: "#ffffff",
+                  borderColor: "#ffffff",
+                  textTransform: "capitalize",
+                  fontWeight: "bold",
+                }}
+              >
+                Login
+              </Button>
+            </Link>
+          )}
         </Box>
       </Box>
     </Box>

@@ -1,10 +1,11 @@
+import { Box } from "@mui/material";
 import AccountLedger from "./AccountLedger";
 
 const Dashboard = () => {
   return (
-    <div>
+    <Box >
       <AccountLedger />
-    </div>
+    </Box>
   );
 };
 
