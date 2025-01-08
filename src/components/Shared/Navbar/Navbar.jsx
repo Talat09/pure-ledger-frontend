@@ -1,8 +1,12 @@
 import { Avatar, Box, Button, Typography } from "@mui/material";
 import logo from "../../../assets/logo.png";
 import { Link } from "react-router-dom";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
+
 const Navbar = () => {
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
+  const { currentUser } = useContext(AuthContext);
   return (
     <Box sx={{ backgroundColor: "#2397c8" }}>
       <Box sx={{ maxWidth: "1440px", mx: "auto" }}>
@@ -18,8 +22,8 @@ const Navbar = () => {
             {" "}
             <img src={logo} alt="Pure Ledger Logo" />
           </Link>
-          {token ? (
-            <Box sx={{ display: "flex", alignItems: "center",gap:2 }}>
+          {currentUser ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Box>
                 <Typography sx={{ color: "white", fontWeight: 600 }}>
                   Demo Name

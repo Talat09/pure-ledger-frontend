@@ -7,12 +7,15 @@ import {
   IconButton,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import Cookies from "js-cookie";
+import { AuthContext } from "../context/AuthContext";
+import Loader from "../Loader/Loader";
+
 const Login = () => {
+  const { updateUser } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     employeeID: "",
     password: "",
@@ -39,21 +42,21 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/users/login",
+        "https://pure-ledger-backend.vercel.app/api/users/login",
         formData,
         {
           withCredentials: true,
         }
       );
-      // Show success toast
-      //   console.log((response.statusText = "OK"));
-      console.log("Cookie token:", Cookies.get("token"));
-      if (response.statusText === "OK") {
-        // Store the token in localStorage
+      console.log(response);
+      updateUser(response.data);
+      if (response.status === 200) {
         localStorage.setItem("token", response.data.token);
         toast.success(`Welcome back, ${response.data.fullName}!`);
         // Navigate to dashboard or home
-        navigate("/dashboard");
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 500); // Add a 500ms delay
       }
     } catch (err) {
       // Show error toast
@@ -62,7 +65,9 @@ const Login = () => {
       setLoading(false);
     }
   };
-
+  if (loading) {
+    return <Loader />;
+  }
   return (
     <Box>
       <Toaster position="top-center" reverseOrder={false} />

@@ -9,8 +9,9 @@ import {
   MenuItem,
 } from "@mui/material";
 import axios from "axios";
-import { useEffect, useState } from "react";
+// import { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -21,31 +22,39 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import Loader from "../Loader/Loader";
 
 const Accounts = () => {
-  const [data, setData] = useState([]);
   const token = localStorage.getItem("token");
-  useEffect(() => {
-    const fetchTransaction = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/transactions",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setData(response.data);
-      } catch (error) {
-        console.error("Error fetching account heads:", error.message);
-        toast.error("Failed to fetch account heads");
-      }
-    };
 
-    fetchTransaction();
-  }, [token]);
-  console.log("data for chat:", data);
+  // Define the fetcher function
+  const fetchTransactions = async () => {
+    const response = await axios.get(
+      "https://pure-ledger-backend.vercel.app/api/transactions",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  };
+
+  // Use React Query's useQuery (v5 syntax)
+  const {
+    data = [],
+    error,
+    isLoading,
+  } = useQuery({
+    queryKey: ["transactions", token],
+    queryFn: fetchTransactions,
+    enabled: !!token, // Only fetch if token exists
+    onError: () => {
+      toast.error("Failed to fetch account heads");
+    },
+  });
+
+  // Calculate total debit, credit, and amount
   const totalDebit = data
     ?.filter((item) => item?.accountHead?.type === "Debit")
     .reduce((sum, item) => sum + item.amount, 0);
@@ -53,15 +62,8 @@ const Accounts = () => {
     ?.filter((item) => item?.accountHead?.type === "Credit")
     .reduce((sum, item) => sum + item.amount, 0);
   const totalAmount = totalDebit + totalCredit;
-  console.log(
-    "totalDebit:",
-    totalDebit,
-    "totalCredit:",
-    totalCredit,
-    "totalAmount:",
-    totalAmount
-  );
-  // Month template
+
+  // Month summary
   const months = [
     "January",
     "February",
@@ -92,7 +94,8 @@ const Accounts = () => {
     }
   });
 
-  //   console.log("Summary:", summary);
+  if (isLoading) return <Loader />;
+  if (error) return <div>Error loading data</div>;
   return (
     // Main content
     <Box sx={{ flexGrow: 1, p: 3, mr: { md: 28 }, bgcolor: "#ffffff" }}>

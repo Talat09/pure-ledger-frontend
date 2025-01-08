@@ -46,7 +46,7 @@ const Registration = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/users/register",
+        "https://pure-ledger-backend.vercel.app/api/users/register",
         {
           ...formData,
           dateOfBirth: formData.dateOfBirth

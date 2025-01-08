@@ -12,13 +12,20 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew"; // Toggle icon
 import Accounts from "./Accounts"; // Import the Accounts component
-import { useState } from "react";
+import { useContext, useState } from "react";
 import AddAccounting from "./AddAccounting";
 import { useNavigate } from "react-router-dom";
 import LogoutIcon from "@mui/icons-material/Logout";
+import Loader from "../Loader/Loader";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { AuthContext } from "../context/AuthContext";
+import { useMutation } from "@tanstack/react-query";
 const AccountLedger = () => {
   const [selectedIndex, setSelectedIndex] = useState(0); // Track active index
   const [sidebarExpanded, setSidebarExpanded] = useState(true); // Toggle sidebar text
+  const [isLoading, setIsLoading] = useState(false);
+  const { updateUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const handleListItemClick = (index) => {
     setSelectedIndex(index); // Update the active index
@@ -27,14 +34,33 @@ const AccountLedger = () => {
   const toggleSidebar = () => {
     setSidebarExpanded(!sidebarExpanded); // Toggle sidebar text visibility
   };
-  const handleLogout = () => {
-    // Remove the token from local storage
-    localStorage.removeItem("token");
-
-    // Navigate to the home route
-
-    navigate("/");
+  // Define the mutation for logout using React Query
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await axios.post(
+        "https://pure-ledger-backend.vercel.app/api/users/logout",
+        {},
+        { withCredentials: true }
+      );
+      localStorage.removeItem("token"); // Remove token from localStorage
+    },
+    onSuccess: () => {
+      updateUser(null); // Clear user context
+      toast.success("Logout successful");
+      navigate("/");
+    },
+    onError: () => {
+      toast.error("Logout failed. Please try again.");
+    },
+  });
+  const handleLogout = async () => {
+    setIsLoading(true);
+    await logoutMutation.mutateAsync(); // Await the mutation to ensure logout completes
+    setIsLoading(false);
   };
+  if (isLoading) {
+    return <Loader />;
+  }
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
       {/* Sidebar */}

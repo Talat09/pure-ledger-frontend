@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Box,
   TextField,
@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -30,96 +31,109 @@ const AddAccounting = () => {
   const [openModal, setOpenModal] = useState(false);
   const [newAccountHeadType, setNewAccountHeadType] = useState("Debit");
   const [newAccountHeadName, setNewAccountHeadName] = useState("");
-  const [accountHeads, setAccountHeads] = useState([]);
 
   const accountTypes = ["Income", "Expense"];
   const token = localStorage.getItem("token");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchAccountHeads = async () => {
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/account-heads",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setAccountHeads(response.data);
-      } catch (error) {
-        console.error("Error fetching account heads:", error.message);
-        toast.error("Failed to fetch account heads");
+  // API functions
+  const fetchAccountHeads = async () => {
+    const response = await axios.get(
+      "https://pure-ledger-backend.vercel.app/api/account-heads",
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
-    };
-
-    fetchAccountHeads();
-  }, [token]);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const selectedHead = accountHeads.find((head) => head.name === accountHead);
-
-    if (!selectedHead) {
-      alert("Invalid account head selected");
-      return;
-    }
-
-    try {
-      await axios.post(
-        "http://localhost:5000/api/transactions",
-        {
-          date,
-          accountType,
-          accountHeadId: selectedHead._id,
-          amount: parseFloat(amount),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      toast.success("Transaction added successfully!");
-    } catch (error) {
-      console.error(
-        "Error adding transaction:",
-        error.response?.data || error.message
-      );
-      toast.error(error.response?.data?.message || "Failed to add transaction");
-    }
+    );
+    return response.data;
   };
 
-  const handleAddHead = async () => {
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/account-heads",
-        {
-          type: newAccountHeadType,
-          name: newAccountHeadName,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  const addTransaction = async (transactionData) => {
+    const response = await axios.post(
+      "https://pure-ledger-backend.vercel.app/api/transactions",
+      transactionData,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data;
+  };
 
-      setAccountHeads((prev) => [...prev, response.data]);
+  const addAccountHead = async (accountHeadData) => {
+    const response = await axios.post(
+      "https://pure-ledger-backend.vercel.app/api/account-heads",
+      accountHeadData,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data;
+  };
+
+  // Queries and Mutations
+  const { data: accountHeads = [], isLoading: isLoadingHeads } = useQuery({
+    queryKey: ["accountHeads"],
+    queryFn: fetchAccountHeads,
+    onError: (error) => {
+      toast.error("Failed to fetch account heads");
+      console.error("Error fetching account heads:", error);
+    },
+  });
+
+  const addTransactionMutation = useMutation({
+    mutationFn: addTransaction,
+    onSuccess: () => {
+      toast.success("Transaction added successfully!");
+      // Reset form
+      setDate(null);
+      setAccountType("");
+      setAccountHead("");
+      setAmount("");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to add transaction");
+      console.error("Error adding transaction:", error);
+    },
+  });
+
+  const addAccountHeadMutation = useMutation({
+    mutationFn: addAccountHead,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["accountHeads"]);
       toast.success("Account head added successfully!");
-    } catch (error) {
-      console.error(
-        "Error adding account head:",
-        error.response?.data || error.message
-      );
+      setOpenModal(false);
+      setNewAccountHeadName("");
+    },
+    onError: (error) => {
       toast.error(
         error.response?.data?.message || "Failed to add account head"
       );
-    } finally {
-      setOpenModal(false);
-      setNewAccountHeadName("");
+      console.error("Error adding account head:", error);
+    },
+  });
+
+  // Event Handlers
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const selectedHead = accountHeads.find((head) => head.name === accountHead);
+    if (!selectedHead) {
+      toast.error("Invalid account head selected");
+      return;
     }
+
+    addTransactionMutation.mutate({
+      date,
+      accountType,
+      accountHeadId: selectedHead._id,
+      amount: parseFloat(amount),
+    });
+  };
+
+  const handleAddHead = () => {
+    addAccountHeadMutation.mutate({
+      type: newAccountHeadType,
+      name: newAccountHeadName,
+    });
   };
 
   return (
@@ -181,6 +195,7 @@ const AddAccounting = () => {
               fullWidth
               margin="normal"
               sx={{ bgcolor: "#fff" }}
+              disabled={isLoadingHeads}
             >
               {accountHeads.map((head) => (
                 <MenuItem key={head._id} value={head.name}>
@@ -203,12 +218,12 @@ const AddAccounting = () => {
               fullWidth
               sx={{ mt: 2, bgcolor: "#2397C8", borderRadius: "4px" }}
               onClick={handleSubmit}
+              disabled={addTransactionMutation.isLoading}
             >
-              Submit
+              {addTransactionMutation.isLoading ? "Submitting..." : "Submit"}
             </Button>
           </Box>
         </Grid>
-        {/* Divider */}
         <Grid xs={12} md={2}>
           <Box
             sx={{
@@ -219,7 +234,7 @@ const AddAccounting = () => {
               height: "310px",
               mx: "auto",
             }}
-          ></Box>
+          />
         </Grid>
         <Grid item xs={12} md={5}>
           <Box sx={{ p: 4 }}>
@@ -231,17 +246,20 @@ const AddAccounting = () => {
             >
               Account Heads
             </Typography>
-            <List>
-              {accountHeads.map((head) => (
-                <ListItem
-                  key={head._id}
-                  sx={{ bgcolor: "#ECEDFA", mb: 1, borderRadius: 1 }}
-                >
-                  <ListItemText primary={head.name} />
-                </ListItem>
-              ))}
-            </List>
-
+            {isLoadingHeads ? (
+              <Typography>Loading account heads...</Typography>
+            ) : (
+              <List>
+                {accountHeads.map((head) => (
+                  <ListItem
+                    key={head._id}
+                    sx={{ bgcolor: "#ECEDFA", mb: 1, borderRadius: 1 }}
+                  >
+                    <ListItemText primary={head.name} />
+                  </ListItem>
+                ))}
+              </List>
+            )}
             <Typography
               color="primary"
               variant="body2"
@@ -253,11 +271,7 @@ const AddAccounting = () => {
           </Box>
         </Grid>
       </Grid>
-      {/* Left Section: Form */}
 
-      {/* Right Section: Account Heads */}
-
-      {/* Modal for Adding Account Head */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)}>
         <DialogTitle>Add Account Head</DialogTitle>
         <DialogContent>
@@ -283,8 +297,12 @@ const AddAccounting = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenModal(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddHead}>
-            Add Head
+          <Button
+            variant="contained"
+            onClick={handleAddHead}
+            disabled={addAccountHeadMutation.isLoading}
+          >
+            {addAccountHeadMutation.isLoading ? "Adding..." : "Add Head"}
           </Button>
         </DialogActions>
       </Dialog>
