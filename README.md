@@ -39,7 +39,7 @@ The dashboard provides an overview of the user's financial information:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-repo/pure-ledger-app.git
+   git clone https://github.com/Talat09/pure-ledger-frontend.git
    cd pure-ledger-app
    ```
 
